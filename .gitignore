@@ -1,0 +1,6 @@
+# Zips originales de CAMMESA, guardados solo en local. La base Req Max se extrajo y el resto del contenido no es utilizado por el prototipo.
+data/raw/cammesa/*.zip
+
+
+# Entorno virtual local, las dependencias se documentan en requirements.txt
+.venv 
