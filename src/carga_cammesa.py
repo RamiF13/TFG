@@ -1,5 +1,5 @@
 import pandas as pd
-
+from pathlib import Path
 # leer_reqmax
 encabezado = 13
 
@@ -30,11 +30,23 @@ def union_filtro(rutas):
     """Carga y filtro de los archivos REQ_MAX de CAMMESA"""
     tablas = []
     for ruta in rutas:
-        tablas.append(filtrar_agente(leer_reqmax(ruta)))
-    serie = pd.concat(tablas).sort_values("MES").reset_index(drop=True)
+        tabla = filtrar_agente(leer_reqmax(ruta))
+        edicion, descarga = extraer_fechas(ruta)
+        tabla["EDICION"] = edicion
+        tabla["DESCARGA"] = descarga
+        tablas.append(tabla)
+    serie = pd.concat(tablas).sort_values(["MES","EDICION","DESCARGA"]).drop_duplicates(subset="MES", keep="last").reset_index(drop=True)
     return serie
 
 
 def csv_tabla(serie,ruta):
     """Guarda la tabla a formato CSV"""
     serie.to_csv(ruta, index=False)
+
+
+def extraer_fechas(ruta):
+    """Devuelve la fecha de edición de la tabla y de descarga"""
+    nombre_split = ruta.stem.split("_")
+    if len(nombre_split) != 5:
+        raise ValueError(f"Nombre inválido: {ruta.name}, se espera CAMMESA_MEM_ReqMax_aaaa-mm_aaaa-mm-dd \n siendo la primera la fecha de EDICIÓN y la segunda la fecha de DESCARGA")
+    return nombre_split[3], nombre_split[4]
