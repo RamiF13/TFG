@@ -4,3 +4,7 @@ data/raw/cammesa/*.zip
 
 # Entorno virtual local, las dependencias se documentan en requirements.txt
 .venv 
+
+# Pycache
+
+__pycache__/
