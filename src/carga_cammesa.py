@@ -1,5 +1,5 @@
 import pandas as pd
-from pathlib import Path
+
 # leer_reqmax
 encabezado = 13
 
@@ -9,6 +9,9 @@ nombres = {
     'MAXIMO REAL [MW]' : 'MAX_REAL_MW',
     'POTENCIA DECLARADA [MW]' : 'POTENCIA_DECLARADA_MW'
 }
+
+# detectar_revisados
+tolerancia = 0.0005
 
 # Funciones
 
@@ -26,22 +29,9 @@ def filtrar_agente(df):
     return df
 
 
-def union_filtro(rutas):
-    """Carga y filtro de los archivos REQ_MAX de CAMMESA"""
-    tablas = []
-    for ruta in rutas:
-        tabla = filtrar_agente(leer_reqmax(ruta))
-        edicion, descarga = extraer_fechas(ruta)
-        tabla["EDICION"] = edicion
-        tabla["DESCARGA"] = descarga
-        tablas.append(tabla)
-    serie = pd.concat(tablas).sort_values(["MES","EDICION","DESCARGA"]).drop_duplicates(subset="MES", keep="last").reset_index(drop=True)
-    return serie
-
-
-def csv_tabla(serie,ruta):
+def csv_tabla(tabla,ruta):
     """Guarda la tabla a formato CSV"""
-    serie.to_csv(ruta, index=False)
+    tabla.to_csv(ruta, index=False)
 
 
 def extraer_fechas(ruta):
@@ -50,3 +40,43 @@ def extraer_fechas(ruta):
     if len(nombre_split) != 5:
         raise ValueError(f"Nombre inválido: {ruta.name}, se espera CAMMESA_MEM_ReqMax_aaaa-mm_aaaa-mm-dd \n siendo la primera la fecha de EDICIÓN y la segunda la fecha de DESCARGA")
     return nombre_split[3], nombre_split[4]
+
+def meses_faltantes(tabla):
+    """Devuelve que meses faltan en la serie"""
+    inicio = tabla["MES"].min()
+    fin = tabla["MES"].max()
+    completa = pd.date_range(inicio, fin, freq="MS")
+    return completa.difference(tabla["MES"])
+
+
+def apilar_ediciones(rutas):
+    """Apila ediciones de CAMMESA"""
+    tablas = []
+    for ruta in rutas:
+        tabla = filtrar_agente(leer_reqmax(ruta))
+        edicion, descarga = extraer_fechas(ruta)
+        tabla["EDICION"] = edicion
+        tabla["DESCARGA"] = descarga
+        tablas.append(tabla)
+    return pd.concat(tablas)
+
+
+def detectar_revisados(ediciones):
+    """Devuelve TRUE para cada mes que el valor cambió"""
+    maximo = ediciones.groupby("MES")["MAX_REAL_MW"].max()
+    minimo = ediciones.groupby("MES")["MAX_REAL_MW"].min()
+    variacion = maximo - minimo
+    return variacion > tolerancia
+
+def deduplicar(ediciones):
+    """Deduplica valores entre ediciones"""
+    return ediciones.sort_values(["MES","EDICION","DESCARGA"]).drop_duplicates(subset="MES", keep="last").reset_index(drop=True)
+
+
+def union_filtro(rutas):
+    """Carga, une, deduplica, filtra y marca como revisados los datos de los archivos REQ_MAX de CAMMESA"""
+    ediciones = apilar_ediciones(rutas)
+    revisados = detectar_revisados(ediciones)
+    serie = deduplicar(ediciones)
+    serie["REVISADO"] = serie["MES"].map(revisados)
+    return serie
