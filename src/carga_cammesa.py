@@ -1,4 +1,5 @@
 import pandas as pd
+from calidad import mw_copia
 
 # leer_reqmax
 encabezado = 13
@@ -74,9 +75,10 @@ def deduplicar(ediciones):
 
 
 def union_filtro(rutas):
-    """Carga, une, deduplica, filtra y marca como revisados los datos de los archivos REQ_MAX de CAMMESA"""
+    """Carga, une, deduplica, filtra, marca como revisados y detecta los meses con el máximo real copiado de la potencia declarada, los datos de los archivos REQ_MAX de CAMMESA"""
     ediciones = apilar_ediciones(rutas)
     revisados = detectar_revisados(ediciones)
     serie = deduplicar(ediciones)
     serie["REVISADO"] = serie["MES"].map(revisados)
+    serie["COPIA_DECLARADA"] = mw_copia(serie)
     return serie
