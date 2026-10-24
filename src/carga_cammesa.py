@@ -80,5 +80,5 @@ def union_filtro(rutas):
     revisados = detectar_revisados(ediciones)
     serie = deduplicar(ediciones)
     serie["REVISADO"] = serie["MES"].map(revisados)
-    serie["COPIA_DECLARADA"] = mw_copia(serie)
+    serie["POSIBLE_COPIA_DECLARACION"] = mw_copia(serie)
     return serie
