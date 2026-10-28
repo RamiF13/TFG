@@ -8,3 +8,7 @@ data/raw/cammesa/*.zip
 # Pycache
 
 __pycache__/
+
+# Archivo de registros de ejecuciones del prónostico
+data/registros/*.csv
+
