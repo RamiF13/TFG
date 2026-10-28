@@ -1,5 +1,8 @@
 import pandas as pd
+import numpy as np
+from pathlib import Path
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
+import statsmodels.formula.api as smf
 
 #asignar_estaciones
 estaciones = {
@@ -20,13 +23,23 @@ estaciones = {
 #calcular_maximos_estacionales
 meses_estacion = 6
 
-#preparar_serie_hw
+#preparar_serie_hw - FECHA ATIPICA
 FECHA_ATIPICA = pd.Timestamp("2020-04-01")
 
 #pronosticar_hw
 tendencia = None
 estacional = "add"
 periodos_estacionales = 12
+
+#calcular_grados
+umbral = 14
+
+#pronosticar_cuantiles
+formula = "MAX_REAL_MW ~ GRADOS_FRIO + GRADOS_CALOR"
+cuantiles = np.arange(0.01, 1, 0.01).round(2)
+niveles = [0.1, 0.5, 0.9]
+paso = 0.01
+
 
 def union_serie_trabajo(cammesa, temperatura):
     """Une la tabla de CAMMESA con la variable exógena de temperatura de OpenMeteo"""
@@ -63,6 +76,7 @@ def pronostico_ingenuo(maximos):
     maximos["ERROR_MW"] = maximos["MAXIMO_MW"] - maximos["PRONOSTICO_ANT"]
     return maximos
 
+
 def preparar_serie_hw(serie, fecha_atipica=FECHA_ATIPICA):
     """Arma la serie mensual para Holt-Winters, reemplazando el mes atípico por el promedio del mismo mes en los demás años"""
     serie_mensual = serie.set_index("MES")["MAX_REAL_MW"].asfreq("MS")
@@ -73,9 +87,84 @@ def preparar_serie_hw(serie, fecha_atipica=FECHA_ATIPICA):
     serie_hw.loc[fecha_atipica] = promedio_mes
     return serie_hw
 
+
 def pronosticar_hw(serie_hw,meses_pronostico):
     """Entrena Holt-Winters a la serie mensual y pronostica los meses pedidos"""
     modelo_hw = ExponentialSmoothing(serie_hw, trend=tendencia, seasonal=estacional, seasonal_periods=periodos_estacionales)
     fit_hw = modelo_hw.fit()
     pronostico = fit_hw.forecast(meses_pronostico)
     return pronostico
+
+
+def calcular_grados(tabla, umbral=umbral):
+    """Agrega los grados de frío y de calor de cada mes respecto del umbral de temperatura"""
+    tabla["GRADOS_FRIO"] = (umbral - tabla["TEMPERATURA_MEDIA_C"]).clip(lower=0)
+    tabla["GRADOS_CALOR"] = (tabla["TEMPERATURA_MEDIA_C"] - umbral).clip(lower=0)
+    return tabla
+
+
+def filtrar_entrenamiento(serie, fecha_atipica=FECHA_ATIPICA):
+    """Devuelve los meses aptos para entrenar, sin las posibles copias de la declaración ni el mes atípico"""
+    meses_validos = ((~serie["POSIBLE_COPIA_DECLARACION"]) & (serie["MES"] != fecha_atipica))
+    return serie[meses_validos]
+
+
+def calcular_temperatura_media(serie):
+    """Calcula la temperatura media de cada mes del calendario, promediando todos los años"""
+    temp_media = serie.groupby(serie["MES"].dt.month)["TEMPERATURA_MEDIA_C"].mean()
+    return temp_media
+
+
+def armar_futuro(inicio, fin, temperatura):
+    """Arma la tabla de los meses a pronosticar con la temperatura climatológica y sus grados de frío y calor"""
+    fechas = pd.date_range(inicio, fin, freq="MS")
+    futuro = pd.DataFrame({"MES" : fechas})
+    futuro["TEMPERATURA_MEDIA_C"] = futuro["MES"].dt.month.map(temperatura)
+    futuro = calcular_grados(futuro)
+    return futuro
+
+
+def pronosticar_cuantiles(entrenamiento, futuro):
+    """Ajusta la regresión cuantílica para cada cuantil, pronostica los meses futuros y ordena cada fila para evitar cruces"""
+    escalera = {}
+    modelo_cuantil = smf.quantreg(formula, entrenamiento)
+    for cuantil in cuantiles:
+        modelo_entrenado = modelo_cuantil.fit(q=cuantil)
+        escalera[cuantil] = modelo_entrenado.predict(futuro)
+    tabla_cuantiles = pd.DataFrame(escalera)
+    ordenado = np.sort(tabla_cuantiles,axis=1)
+    tabla_ordenada = pd.DataFrame(ordenado, columns=tabla_cuantiles.columns)
+    return tabla_ordenada
+
+
+def maximo_estacional(tabla_ordenada):
+    """Calcula los cuantiles del máximo de la estación a partir de los cuantiles mensuales"""
+    inicio = (tabla_ordenada.min()).min()
+    fin = (tabla_ordenada.max()).max()
+    valores = np.arange(inicio, fin + paso, paso)
+    prob_maximo = np.ones(len(valores))
+    for _, fila in tabla_ordenada.iterrows():
+        f = np.interp(valores, fila.values, cuantiles, left=0, right=1)
+        prob_maximo = prob_maximo * f
+    cuantiles_maximo = np.interp(niveles, prob_maximo, valores)
+    return cuantiles_maximo
+
+
+def registrar_ejecucion(serie, entrenamiento, fecha_inicio, fecha_fin, cuantiles_maximo,ruta):
+    """Agrega al registro una fila con la fecha, datos usados, configuración y el resultado de la ejecución"""
+    fila = {
+    "FECHA_EJECUCION" : pd.Timestamp.now().floor("s"),
+    "DATOS_DESDE" : serie["MES"].min(),
+    "DATOS_HASTA" : serie["MES"].max(),
+    "MESES_ENTRENAMIENTO" : len(entrenamiento),
+    "ESTACION_INICIO" : fecha_inicio,
+    "ESTACION_FIN" : fecha_fin,
+    "UMBRAL_C" : umbral,
+    "CUANTILES" : ", ".join(str(n) for n in niveles),
+    "MAXIMO_Q10" : cuantiles_maximo[0],
+    "MAXIMO_Q50" : cuantiles_maximo[1],
+    "MAXIMO_Q90" : cuantiles_maximo[2],
+    }
+    registro = pd.DataFrame([fila])
+    registro.to_csv(ruta, mode="a", header=not ruta.exists(), index=False)
+    return registro
