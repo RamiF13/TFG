@@ -39,7 +39,7 @@ formula = "MAX_REAL_MW ~ GRADOS_FRIO + GRADOS_CALOR"
 cuantiles = np.arange(0.01, 1, 0.01).round(2)
 niveles = [0.1, 0.5, 0.9]
 paso = 0.01
-
+max_iteraciones = 5000
 
 def union_serie_trabajo(cammesa, temperatura):
     """Une la tabla de CAMMESA con la variable exógena de temperatura de OpenMeteo"""
@@ -124,12 +124,12 @@ def armar_futuro(inicio, fin, temperatura):
     return futuro
 
 
-def pronosticar_cuantiles(entrenamiento, futuro):
+def pronosticar_cuantiles(entrenamiento, futuro, max_iter=max_iteraciones):
     """Ajusta la regresión cuantílica para cada cuantil, pronostica los meses futuros y ordena cada fila para evitar cruces"""
     escalera = {}
     modelo_cuantil = smf.quantreg(formula, entrenamiento)
     for cuantil in cuantiles:
-        modelo_entrenado = modelo_cuantil.fit(q=cuantil)
+        modelo_entrenado = modelo_cuantil.fit(q=cuantil, max_iter=max_iter)
         escalera[cuantil] = modelo_entrenado.predict(futuro)
     tabla_cuantiles = pd.DataFrame(escalera)
     ordenado = np.sort(tabla_cuantiles,axis=1)
@@ -168,3 +168,28 @@ def registrar_ejecucion(serie, entrenamiento, fecha_inicio, fecha_fin, cuantiles
     registro = pd.DataFrame([fila])
     registro.to_csv(ruta, mode="a", header=not ruta.exists(), index=False)
     return registro
+
+
+def particion_temporal(validos, fecha_corte):
+    """Divide los meses válidos en entrenamiento y prueba"""
+    entrenamiento = validos[validos["MES"] <= fecha_corte]
+    prueba = validos[validos["MES"] > fecha_corte]
+    prueba = prueba.reset_index(drop=True)
+    return entrenamiento, prueba
+
+
+def metricas_bandas(prueba):
+    """Calcula la cobertura de la banda 0.1 a 0.9, la proporción por debajo y por encima, y el error y sesgo de la mediana"""
+    real = prueba["MAX_REAL_MW"]
+    por_debajo = (real < prueba["PRED_10"]).mean()
+    por_encima = (real > prueba["PRED_90"]).mean()
+    cobertura = ((real >= prueba["PRED_10"]) & (real <= prueba["PRED_90"])).mean()
+    mae = (real - prueba["PRED_50"]).abs().mean()
+    sesgo = (real - prueba["PRED_50"]).mean()
+    return {
+        "COBERTURA" : cobertura,
+        "POR_DEBAJO" : por_debajo,
+        "POR_ENCIMA" : por_encima,
+        "MAE" : mae,
+        "SESGO" : sesgo
+    }
