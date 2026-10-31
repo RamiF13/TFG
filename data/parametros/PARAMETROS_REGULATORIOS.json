@@ -1,0 +1,77 @@
+{
+"precio_ppad": {
+    "valor" : 16,
+    "unidad" : "u$s/MWhrp",
+    "norma" : "Res. SE 400/2025, Anexo I, punto 7.2",
+    "vigencia_desde" : "2025-11-01"
+},
+
+
+"porcentaje_piso": {
+    "valor" : 90,
+    "unidad" : "%",
+    "norma" : "Res. SE 22/2026, art. 6",
+    "vigencia_desde" : "2026-01-28" 
+},
+
+
+"porcentaje_transitorio": {
+    "valor" :  75,
+    "unidad" : "%",
+    "norma" : "Res. SE 22/2026, art. 6",
+    "vigencia_desde" : "2026-01-28"
+},
+
+"estacion_transitoria": {
+    "valor" : "VERANO", 
+    "unidad" : "",
+    "norma" : "Res. SE 22/2026, art. 6",
+    "vigencia_desde" : "2026-01-28"
+},
+
+
+"anio_transitorio": {
+    "valor" : 2025,
+    "unidad" : "",
+    "norma" : "Res. SE 22/2026, art. 6",
+    "vigencia_desde" : "2026-01-28"
+},
+
+"kp_pico": {
+    "valor" : 1.1,
+    "unidad" : "",
+    "norma" : "Res. SE 400/2025, Anexo I, puntos 6.5 y 7.2",
+    "vigencia_desde" : "2025-11-01"
+},
+
+"kp_resto": {
+    "valor" : 0.9,
+    "unidad" : "",
+    "norma" : "Res. SE 400/2025, Anexo I, puntos 6.5 y 7.2",
+    "vigencia_desde" : "2025-11-01"
+},
+
+
+"meses_kp_pico": {
+    "valor" : [12, 1, 2, 6, 7, 8],
+    "unidad" : "",
+    "norma" : "Res. SE 400/2025, Anexo I, punto 6.5",
+    "vigencia_desde" : "2025-11-01"
+},
+
+
+"fpunta": {
+    "valor" : 1,
+    "unidad" : "",
+    "norma" : "Res. SE 400/2025, Anexo I, punto 7.2 (valor inicial)",
+    "vigencia_desde" : "2025-11-01"
+},
+
+
+"horas_hrp_por_dia": {
+    "valor" : 18,
+    "unidad" : "h/día",
+    "norma" : "Bandas horarias de Los Procedimientos de CAMMESA, cap. 2, y semana típica de 90 HRP de la Res. SE 400/2025, punto 6.5",
+    "vigencia_desde" : "2025-11-01"
+}
+}
