@@ -193,3 +193,41 @@ def metricas_bandas(prueba):
         "MAE" : mae,
         "SESGO" : sesgo
     }
+
+
+def fechas_estacion(estacion, anio):
+    """Devuelve el primer mes y el último mes de una estación"""
+    if estacion == "INVIERNO":
+        inicio = pd.Timestamp(year=anio, month=5 , day=1)
+        fin = pd.Timestamp(year=anio, month=10, day=1)
+    else:
+        inicio = pd.Timestamp(year=anio, month=11 , day=1)
+        fin = pd.Timestamp(year=anio + 1, month=4 , day=1)
+    return inicio, fin
+
+def pronostico_retrospectivo(serie, estaciones_evaluadas):
+    """Pronostica cada estación evaluada usando solo los datos anteriores a su inicio, con la regresión cuantílica y Holt-Winters"""
+    resultados = []
+    estaciones_evaluadas = estaciones_evaluadas.reset_index(drop=True)
+    for _, fila in estaciones_evaluadas.iterrows():
+        inicio, fin = fechas_estacion(fila["ESTACION"], fila["ANIO_ESTACION"])
+        pasado = serie[serie["MES"] < inicio].copy()
+        pasado = calcular_grados(pasado)
+        entrenamiento = filtrar_entrenamiento(pasado)
+        temp_media = calcular_temperatura_media(pasado)
+        futuro = armar_futuro(inicio, fin, temp_media)
+        tabla_ordenada = pronosticar_cuantiles(entrenamiento, futuro)
+        cuantiles_maximo = maximo_estacional(tabla_ordenada)
+        #holt-winters
+        serie_hw = preparar_serie_hw(pasado)
+        pronostico_hw = pronosticar_hw(serie_hw, 6)
+        pico_hw = pronostico_hw.max()
+        resultados.append({
+            "Q10_MW" : cuantiles_maximo[0],
+            "Q50_MW" : cuantiles_maximo[1],
+            "Q90_MW" : cuantiles_maximo[2],
+            "HW_MW" : pico_hw,
+        })
+    resultados = pd.DataFrame(resultados)
+    retrospectivo = pd.concat([estaciones_evaluadas, resultados], axis=1)
+    return retrospectivo
