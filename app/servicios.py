@@ -8,7 +8,7 @@ RUTA_PROYECTO = Path(__file__).resolve().parents[1]
 sys.path.append(str(RUTA_PROYECTO / "src"))
 
 from modelado import asignar_estaciones, calcular_maximos_estacionales, pronosticar_estacion, proxima_estacion
-from regulacion import cargar_parametros, proyectar_cargo, vigencia_parametros, declaradas_estacionales
+from regulacion import cargar_parametros, proyectar_cargo, vigencia_parametros, declaradas_estacionales, senalar_ajuste
 
 RUTA_SERIE = RUTA_PROYECTO / "data" / "processed" / "SERIE_TRABAJO_CTRELEUW.csv"
 RUTA_PARAMETROS = RUTA_PROYECTO / "data" / "parametros" / "PARAMETROS_REGULATORIOS.json"
@@ -30,7 +30,9 @@ def calcular_consulta(estacion, anio):
     futuro, _, cuantiles_maximo = pronosticar_estacion(serie, estacion, anio)
     maximos = calcular_maximos_estacionales(serie)
     futuro = proyectar_cargo(futuro, maximos, estacion, anio, parametros)
-    return futuro, cuantiles_maximo, maximos
+    piso = futuro["PISO_MW"].iloc[0]
+    senal = senalar_ajuste(cuantiles_maximo[1], cuantiles_maximo[2], piso)
+    return futuro, cuantiles_maximo, maximos, senal
 
 
 def formato_mw(valor):

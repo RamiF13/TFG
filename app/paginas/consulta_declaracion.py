@@ -19,7 +19,7 @@ col_info.caption(f"Última carga de datos: {ultima_carga} - Parámetros vigentes
 
 
 with st.spinner("Calculando el pronóstico..."):
-    futuro, cuantiles_maximo, maximos = calcular_consulta(estacion, anio)
+    futuro, cuantiles_maximo, maximos, senal = calcular_consulta(estacion, anio)
 
 
 piso = futuro["PISO_MW"].iloc[0]
@@ -106,3 +106,13 @@ tabla_anterior = pd.DataFrame({
     "Potencia declarada": [formato_mw(anterior_historial["DECLARADA_MAX_MW"].iloc[0])],
 })
 st.dataframe(tabla_anterior, hide_index=True)
+
+if senal["SENALADO"]:
+    st.warning(
+        f"**Estación señalada.** La banda superior del pronóstico ({formato_mw(cuantiles_maximo[2])}) queda por debajo del piso ({formato_mw(piso)}). "
+        f"El piso supera al pronóstico central en {formato_mw(senal['DIF_CENTRAL_MW'])} y a la banda superior en {formato_mw(senal['DIF_SUPERIOR_MW'])}. "
+        "Podría justificarse solicitar el ajuste del piso ante CAMMESA. El señalamiento no es una recomendación concluyente: "
+        "el pedido requiere demostrar cambios en las condiciones de la demanda (Res. SE 400/2025, Anexo I, punto 7.2)."
+    )
+else:
+    st.info("El pronóstico alcanza el piso: el piso se mantiene como referencia de declaración.")
