@@ -112,3 +112,21 @@ def sobrecosto_evitable(serie, maximos, fecha_inicio, fecha_fin, parametros=para
     tabla["CARGO_PISO_USD"] = calcular_cargo(tabla.copy(), columna_declarada="PISO_MW", parametros=parametros)["CARGO_USD"]
     tabla["SOBRECOSTO_USD"] = tabla["CARGO_DECLARADO_USD"] - tabla["CARGO_PISO_USD"]
     return tabla
+
+
+def proyectar_cargo(futuro, maximos, estacion, anio, parametros=parametros_defecto):
+    """Proyecta el cargo mensual de una estación con los cuantiles inferior, central y superior del pronóstico, declarando el piso"""
+    maximos = maximos.copy()
+    existe = ((maximos["ESTACION"] == estacion) & (maximos["ANIO_ESTACION"] == anio)).any()
+    if not existe:
+        proxima = pd.DataFrame({"ESTACION": [estacion], "ANIO_ESTACION": [anio], "COMPLETA": [False]})
+        maximos = pd.concat([maximos, proxima], ignore_index=True)
+    maximos = calcular_piso(maximos, parametros)
+    futuro = futuro.copy()
+    futuro["ESTACION"] = estacion
+    futuro["ANIO_ESTACION"] = anio
+    futuro = asignar_piso(futuro, maximos)
+    futuro = calcular_hrp(futuro, parametros)
+    escenarios = {"CARGO_Q10_USD": "Q10_MW", "CARGO_Q50_USD": "Q50_MW", "CARGO_Q90_USD": "Q90_MW"}
+    futuro = cargo_escenarios(futuro, escenarios, parametros=parametros)
+    return futuro
