@@ -146,3 +146,12 @@ def proyectar_cargo(futuro, maximos, estacion, anio, parametros=parametros_defec
     escenarios = {"CARGO_Q10_USD": "Q10_MW", "CARGO_Q50_USD": "Q50_MW", "CARGO_Q90_USD": "Q90_MW"}
     futuro = cargo_escenarios(futuro, escenarios, parametros=parametros)
     return futuro
+
+
+def senalar_ajuste(central, superior, piso):
+    """Señala la estación si la banda superior del máximo estacional queda por debajo del piso e informa cuánto queda el piso por encima del pronóstico central y del superior"""
+    return {
+        "SENALADO": bool(superior < piso),
+        "DIF_CENTRAL_MW": round(piso - central, 3),
+        "DIF_SUPERIOR_MW": round(piso - superior, 3),
+    }
