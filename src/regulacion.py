@@ -47,11 +47,11 @@ def calcular_hrp(serie, parametros=parametros_defecto):
     return serie
 
 
-def calcular_cargo(serie, columna_declarada="POTENCIA_DECLARADA_MW", parametros=parametros_defecto):
+def calcular_cargo(serie, columna_registrada="MAX_REAL_MW", columna_declarada="POTENCIA_DECLARADA_MW", parametros=parametros_defecto):
     """Calcula el cargo mensual por potencia según la Res. SE 400/2025, con el mayor entre la demanda registrada y el valor declarado"""
     es_pico = serie["MES"].dt.month.isin(parametros["meses_kp_pico"])
     serie["KP"] = np.where(es_pico, parametros["kp_pico"], parametros["kp_resto"])
-    serie["REQ_POT_MW"] = np.maximum(serie["MAX_REAL_MW"], serie[columna_declarada])
+    serie["REQ_POT_MW"] = np.maximum(serie[columna_registrada], serie[columna_declarada])
     serie["CARGO_USD"] = (parametros["precio_ppad"] * serie["KP"] * serie["REQ_POT_MW"] * parametros["fpunta"] * serie["HRP"]).round(2)
     return serie
 
@@ -95,3 +95,20 @@ def validar_parametros(parametros):
         raise ValueError("\n".join(errores))
 
 
+def cargo_escenarios(tabla, escenarios, columna_declarada="PISO_MW", parametros=parametros_defecto):
+    """Calcula el cargo mensual de cada escenario, usando como demanda registrada la columna indicada para cada uno"""
+    for nombre, columna in escenarios.items():
+        calculado = calcular_cargo(tabla.copy(), columna_registrada=columna, columna_declarada=columna_declarada, parametros=parametros)
+        tabla[nombre] = calculado["CARGO_USD"]
+    return tabla
+
+
+def sobrecosto_evitable(serie, maximos, fecha_inicio, fecha_fin, parametros=parametros_defecto):
+    """Compara mes a mes el cargo con la potencia declarada contra el cargo declarando el piso, entre las fechas indicadas. Los máximos tienen que venir con el piso calculado"""
+    tabla = serie[(serie["MES"] >= fecha_inicio) & (serie["MES"] <= fecha_fin)].copy()
+    tabla = asignar_piso(tabla, maximos)
+    tabla = calcular_hrp(tabla, parametros)
+    tabla["CARGO_DECLARADO_USD"] = calcular_cargo(tabla.copy(), parametros=parametros)["CARGO_USD"]
+    tabla["CARGO_PISO_USD"] = calcular_cargo(tabla.copy(), columna_declarada="PISO_MW", parametros=parametros)["CARGO_USD"]
+    tabla["SOBRECOSTO_USD"] = tabla["CARGO_DECLARADO_USD"] - tabla["CARGO_PISO_USD"]
+    return tabla
