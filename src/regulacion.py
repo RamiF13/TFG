@@ -71,6 +71,22 @@ def cargar_parametros(ruta):
     validar_parametros(parametros)
     return parametros
 
+def vigencia_parametros(ruta):
+    """Devuelve la fecha de vigencia más reciente entre los parámetros regulatorios"""
+    with open(ruta, encoding="utf-8") as archivo:
+        datos = json.load(archivo)
+    fechas = [datos[clave]["vigencia_desde"] for clave in datos]
+    return max(fechas)
+
+
+def declaradas_estacionales(serie):
+    """Calcula la potencia declarada máxima y promedio de cada estación"""
+    tabla = serie.groupby(["ESTACION", "ANIO_ESTACION"]).agg(
+        DECLARADA_MAX_MW=("POTENCIA_DECLARADA_MW", "max"),
+        DECLARADA_MEDIA_MW=("POTENCIA_DECLARADA_MW", "mean"),
+    )
+    return tabla.reset_index()
+
 
 def validar_parametros(parametros):
     """Revisa que los parámetros regulatorios tengan valores válidos y avisa si no se cumplen"""

@@ -206,6 +206,14 @@ def fechas_estacion(estacion, anio):
     return inicio, fin
 
 
+def proxima_estacion(serie):
+    """Devuelve la estación siguiente a la del último mes con datos"""
+    ultima = serie.sort_values("MES").iloc[-1]
+    if ultima["ESTACION"] == "INVIERNO":
+        return "VERANO", ultima["ANIO_ESTACION"]
+    return "INVIERNO", ultima["ANIO_ESTACION"] + 1
+
+
 def pronosticar_estacion(serie, estacion, anio):
     """Pronostica los meses de una estación con los datos anteriores a su inicio y devuelve los cuantiles mensuales y los del máximo estacional"""
     inicio, fin = fechas_estacion(estacion, anio)
