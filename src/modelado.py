@@ -205,20 +205,29 @@ def fechas_estacion(estacion, anio):
         fin = pd.Timestamp(year=anio + 1, month=4 , day=1)
     return inicio, fin
 
+
+def pronosticar_estacion(serie, estacion, anio):
+    """Pronostica los meses de una estación con los datos anteriores a su inicio y devuelve los cuantiles mensuales y los del máximo estacional"""
+    inicio, fin = fechas_estacion(estacion, anio)
+    pasado = serie[serie["MES"] < inicio].copy()
+    pasado = calcular_grados(pasado)
+    entrenamiento = filtrar_entrenamiento(pasado)
+    temp_media = calcular_temperatura_media(pasado)
+    futuro = armar_futuro(inicio, fin, temp_media)
+    tabla_ordenada = pronosticar_cuantiles(entrenamiento, futuro)
+    futuro[["Q10_MW", "Q50_MW", "Q90_MW"]] = tabla_ordenada[[0.1, 0.5, 0.9]].values
+    cuantiles_maximo = maximo_estacional(tabla_ordenada)
+    return futuro, tabla_ordenada, cuantiles_maximo
+
+
 def pronostico_retrospectivo(serie, estaciones_evaluadas):
     """Pronostica cada estación evaluada usando solo los datos anteriores a su inicio, con la regresión cuantílica y Holt-Winters"""
     resultados = []
     mensuales = []
     estaciones_evaluadas = estaciones_evaluadas.reset_index(drop=True)
     for _, fila in estaciones_evaluadas.iterrows():
-        inicio, fin = fechas_estacion(fila["ESTACION"], fila["ANIO_ESTACION"])
-        pasado = serie[serie["MES"] < inicio].copy()
-        pasado = calcular_grados(pasado)
-        entrenamiento = filtrar_entrenamiento(pasado)
-        temp_media = calcular_temperatura_media(pasado)
-        futuro = armar_futuro(inicio, fin, temp_media)
-        tabla_ordenada = pronosticar_cuantiles(entrenamiento, futuro)
-        cuantiles_maximo = maximo_estacional(tabla_ordenada)
+        futuro, tabla_ordenada, cuantiles_maximo = pronosticar_estacion(serie, fila["ESTACION"], fila["ANIO_ESTACION"])
+        pasado = serie[serie["MES"] < futuro["MES"].min()].copy()
         #holt-winters
         serie_hw = preparar_serie_hw(pasado)
         pronostico_hw = pronosticar_hw(serie_hw, 6)
