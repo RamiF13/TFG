@@ -208,6 +208,7 @@ def fechas_estacion(estacion, anio):
 def pronostico_retrospectivo(serie, estaciones_evaluadas):
     """Pronostica cada estación evaluada usando solo los datos anteriores a su inicio, con la regresión cuantílica y Holt-Winters"""
     resultados = []
+    mensuales = []
     estaciones_evaluadas = estaciones_evaluadas.reset_index(drop=True)
     for _, fila in estaciones_evaluadas.iterrows():
         inicio, fin = fechas_estacion(fila["ESTACION"], fila["ANIO_ESTACION"])
@@ -228,6 +229,24 @@ def pronostico_retrospectivo(serie, estaciones_evaluadas):
             "Q90_MW" : cuantiles_maximo[2],
             "HW_MW" : pico_hw,
         })
+        mensual = pd.DataFrame({
+            "ESTACION" : fila["ESTACION"],
+            "ANIO_ESTACION" : fila["ANIO_ESTACION"],
+            "MES" : futuro["MES"],
+            "PRED_RC_MW" : tabla_ordenada[0.5].values,
+            "PRED_HW_MW" : pronostico_hw.values
+        })
+        mensuales.append(mensual)
     resultados = pd.DataFrame(resultados)
     retrospectivo = pd.concat([estaciones_evaluadas, resultados], axis=1)
-    return retrospectivo
+    mensuales = pd.concat(mensuales, ignore_index=True)
+    return retrospectivo, mensuales
+
+
+def pronostico_anterior_mensual(serie, tabla):
+    """Agrega a la tabla como pronóstico la demanda máxima real del mismo mes del año anterior"""
+    anteriores = serie[["MES", "MAX_REAL_MW"]].copy()
+    anteriores["MES"] = anteriores["MES"] + pd.DateOffset(years=1)
+    anteriores = anteriores.rename(columns={"MAX_REAL_MW": "PRED_ANT_MW"})
+    tabla = tabla.merge(anteriores, on="MES", how="left")
+    return tabla
