@@ -225,7 +225,17 @@ def pronosticar_estacion(serie, estacion, anio):
     tabla_ordenada = pronosticar_cuantiles(entrenamiento, futuro)
     futuro[["Q10_MW", "Q50_MW", "Q90_MW"]] = tabla_ordenada[[0.1, 0.5, 0.9]].values
     cuantiles_maximo = maximo_estacional(tabla_ordenada)
-    return futuro, tabla_ordenada, cuantiles_maximo
+    return futuro, tabla_ordenada, cuantiles_maximo, entrenamiento
+
+
+def pronosticar_hw_estacion(serie, estacion, anio):
+    """Pronostica con Holt-Winters los meses de una estación con los datos anteriores a su inicio, aunque falten meses entre los datos y la estación"""
+    inicio, fin = fechas_estacion(estacion, anio)
+    pasado = serie[serie["MES"] < inicio]
+    serie_hw = preparar_serie_hw(pasado)
+    meses = len(pd.date_range(serie_hw.index.max(), fin, freq="MS")) - 1
+    pronostico = pronosticar_hw(serie_hw, meses)
+    return pronostico[pronostico.index >= inicio]
 
 
 def pronostico_retrospectivo(serie, estaciones_evaluadas):
@@ -233,12 +243,9 @@ def pronostico_retrospectivo(serie, estaciones_evaluadas):
     resultados = []
     mensuales = []
     estaciones_evaluadas = estaciones_evaluadas.reset_index(drop=True)
-    for _, fila in estaciones_evaluadas.iterrows():
-        futuro, tabla_ordenada, cuantiles_maximo = pronosticar_estacion(serie, fila["ESTACION"], fila["ANIO_ESTACION"])
-        pasado = serie[serie["MES"] < futuro["MES"].min()].copy()
-        #holt-winters
-        serie_hw = preparar_serie_hw(pasado)
-        pronostico_hw = pronosticar_hw(serie_hw, 6)
+    for fila in estaciones_evaluadas.to_dict("records"):
+        futuro, tabla_ordenada, cuantiles_maximo, _ = pronosticar_estacion(serie, fila["ESTACION"], fila["ANIO_ESTACION"])
+        pronostico_hw = pronosticar_hw_estacion(serie, fila["ESTACION"], fila["ANIO_ESTACION"])
         pico_hw = pronostico_hw.max()
         resultados.append({
             "Q10_MW" : cuantiles_maximo[0],

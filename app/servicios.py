@@ -28,7 +28,7 @@ def calcular_consulta(estacion, anio):
     """Guarda en caché el pronóstico de la estación y la proyección del cargo para no recalcularlos en cada interacción"""
     serie = leer_serie()
     parametros = cargar_parametros(RUTA_PARAMETROS)
-    futuro, _, cuantiles_maximo = pronosticar_estacion(serie, estacion, anio)
+    futuro, _, cuantiles_maximo, _ = pronosticar_estacion(serie, estacion, anio)
     maximos = calcular_maximos_estacionales(serie)
     futuro = proyectar_cargo(futuro, maximos, estacion, anio, parametros)
     piso = futuro["PISO_MW"].iloc[0]
