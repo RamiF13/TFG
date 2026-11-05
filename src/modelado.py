@@ -195,6 +195,11 @@ def metricas_bandas(prueba):
     }
 
 
+def cobertura_banda(real, inferior, superior):
+    """Calcula la proporción de casos en que el valor real quedó dentro de la banda"""
+    return ((real >= inferior) & (real <= superior)).mean()
+
+
 def fechas_estacion(estacion, anio):
     """Devuelve el primer mes y el último mes de una estación"""
     if estacion == "INVIERNO":
