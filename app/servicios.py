@@ -8,14 +8,17 @@ RUTA_PROYECTO = Path(__file__).resolve().parents[1]
 sys.path.append(str(RUTA_PROYECTO / "src"))
 
 from modelado import asignar_estaciones, calcular_maximos_estacionales, pronosticar_estacion, proxima_estacion, pronosticar_hw_estacion, fechas_estacion, registrar_ejecucion, cobertura_banda
-from regulacion import cargar_parametros, proyectar_cargo, vigencia_parametros, declaradas_estacionales, senalar_ajuste
+from regulacion import cargar_parametros, proyectar_cargo, vigencia_parametros, declaradas_estacionales, senalar_ajuste, calcular_piso, sobrecosto_por_estacion
 from usuarios import verificar_ingreso
+from evaluacion import errores_maximo, cargos_retrospectivos, unir_estaciones, resumen_metricas, MODELOS
 
 RUTA_SERIE = RUTA_PROYECTO / "data" / "processed" / "SERIE_TRABAJO_CTRELEUW.csv"
 RUTA_PARAMETROS = RUTA_PROYECTO / "data" / "parametros" / "PARAMETROS_REGULATORIOS.json"
 RUTA_USUARIOS = RUTA_PROYECTO / "data" / "usuarios" / "USUARIOS.json"
 RUTA_REGISTRO = RUTA_PROYECTO / "data" / "registros" / "EJECUCIONES_PRONOSTICO.csv"
 RUTA_RETROSPECTIVO = RUTA_PROYECTO / "data" / "processed" / "RETROSPECTIVO_CTRELEUW.csv"
+RUTA_RETROSPECTIVO_MENSUAL = RUTA_PROYECTO / "data" / "processed" / "RETROSPECTIVO_MENSUAL_CTRELEUW.csv"
+INICIO_REGIMEN = pd.Timestamp("2025-11-01")
 
 MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
 
@@ -90,7 +93,7 @@ def historial_estacion(estacion):
     declaradas = declaradas_estacionales(serie)
     historial = maximos.merge(declaradas, on=["ESTACION", "ANIO_ESTACION"])
     historial = historial[(historial["ESTACION"] == estacion) & historial["COMPLETA"]].copy()
-    historial["ETIQUETA"] = [etiqueta_estacion(e, a) for e, a in zip(historial["ESTACION"], historial["ANIO_ESTACION"])]
+    historial["ETIQUETA"] = [etiqueta_estacion(estacion, anio) for anio in historial["ANIO_ESTACION"]]
     return historial[["ANIO_ESTACION", "ETIQUETA", "MAXIMO_MW", "DECLARADA_MAX_MW", "DECLARADA_MEDIA_MW"]]
 
 
@@ -127,3 +130,25 @@ def cobertura_retrospectiva():
     """Devuelve la cobertura observada de la banda del máximo estacional en el pronóstico retrospectivo"""
     retrospectivo = pd.read_csv(RUTA_RETROSPECTIVO)
     return cobertura_banda(retrospectivo["MAXIMO_MW"], retrospectivo["Q10_MW"], retrospectivo["Q90_MW"])
+
+
+@st.cache_data
+def calcular_evaluacion():
+    """Calcula y guarda en caché todo lo que muestra la pantalla de evaluación retrospectiva"""
+    serie = leer_serie()
+    parametros = cargar_parametros(RUTA_PARAMETROS)
+    maximos = calcular_piso(calcular_maximos_estacionales(serie), parametros)
+    retrospectivo = pd.read_csv(RUTA_RETROSPECTIVO)
+    mensual = pd.read_csv(RUTA_RETROSPECTIVO_MENSUAL, parse_dates=["MES"])
+
+    estaciones = unir_estaciones(retrospectivo, maximos, declaradas_estacionales(serie))
+    estaciones["ETIQUETA"] = [etiqueta_estacion(estacion, anio) for estacion, anio in zip(estaciones["ESTACION"], estaciones["ANIO_ESTACION"])]
+    errores = errores_maximo(retrospectivo)
+    cargos = cargos_retrospectivos(mensual, serie, maximos, parametros)
+    sobrecosto = sobrecosto_por_estacion(serie, maximos, INICIO_REGIMEN, serie["MES"].max(), parametros)
+    return estaciones, errores, cargos, sobrecosto
+
+
+def formato_miles(valor):
+    """Devuelve el número sin decimales y con punto de miles"""
+    return f"{valor:,.0f}".replace(",", ".")
