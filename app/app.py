@@ -9,7 +9,7 @@ if "rol" not in st.session_state:
 
 
 def pantalla_ingreso():
-    st.markdown("<h1 style='text-align: center;'>Inicio de sesión</h1>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align: center; font-size: 2.75rem; font-weight: 700;'>Inicio de sesión</div>", unsafe_allow_html=True)
     st.caption("Historia HU-08 - Operador del prototipo y Responsable de la declaración")
     _, centro, _ = st.columns([1, 1, 1])
     with centro.container(border=True):
