@@ -6,9 +6,10 @@ data/raw/cammesa/*.zip
 .venv 
 
 # Pycache
-
 __pycache__/
 
 # Archivo de registros de ejecuciones del prónostico
 data/registros/*.csv
 
+# Usuarios registrados (contienen hashes de contraseñas)
+data/usuarios/*.json
