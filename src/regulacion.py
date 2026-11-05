@@ -130,6 +130,15 @@ def sobrecosto_evitable(serie, maximos, fecha_inicio, fecha_fin, parametros=para
     return tabla
 
 
+def sobrecosto_por_estacion(serie, maximos, fecha_inicio, fecha_fin, parametros=parametros_defecto):
+    """Suma el sobrecosto de cada estación y cuenta cuántos meses con datos tiene"""
+    meses = sobrecosto_evitable(serie, maximos, fecha_inicio, fecha_fin, parametros)
+    return meses.groupby(["ESTACION", "ANIO_ESTACION"]).agg(
+        SOBRECOSTO_USD=("SOBRECOSTO_USD", "sum"),
+        MESES=("MES", "count"),
+    ).reset_index()
+
+
 def proyectar_cargo(futuro, maximos, estacion, anio, parametros=parametros_defecto):
     """Proyecta el cargo mensual de una estación con los cuantiles inferior, central y superior del pronóstico, declarando el piso"""
     maximos = maximos.copy()

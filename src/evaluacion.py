@@ -45,3 +45,11 @@ def resumen_metricas(errores, cargos):
             "MAE_CARGO_USD": cargos[f"ERROR_{clave}_USD"].abs().mean(),
         })
     return pd.DataFrame(filas)
+
+
+def unir_estaciones(retrospectivo, maximos, declaradas):
+    """Agrega a cada estación evaluada su piso y su potencia declarada máxima, ordenadas de la más antigua a la más reciente"""
+    claves = ["ESTACION", "ANIO_ESTACION"]
+    estaciones = asignar_piso(retrospectivo, maximos)
+    estaciones = estaciones.merge(declaradas[claves + ["DECLARADA_MAX_MW"]], on=claves, how="left")
+    return estaciones.sort_values(["ANIO_ESTACION", "ESTACION"]).reset_index(drop=True)
