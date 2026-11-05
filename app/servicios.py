@@ -7,13 +7,17 @@ import streamlit as st
 RUTA_PROYECTO = Path(__file__).resolve().parents[1]
 sys.path.append(str(RUTA_PROYECTO / "src"))
 
-from modelado import asignar_estaciones, calcular_maximos_estacionales, pronosticar_estacion, proxima_estacion
+from modelado import asignar_estaciones, calcular_maximos_estacionales, pronosticar_estacion, proxima_estacion, pronosticar_hw_estacion, fechas_estacion, registrar_ejecucion, cobertura_banda
 from regulacion import cargar_parametros, proyectar_cargo, vigencia_parametros, declaradas_estacionales, senalar_ajuste
 from usuarios import verificar_ingreso
 
 RUTA_SERIE = RUTA_PROYECTO / "data" / "processed" / "SERIE_TRABAJO_CTRELEUW.csv"
 RUTA_PARAMETROS = RUTA_PROYECTO / "data" / "parametros" / "PARAMETROS_REGULATORIOS.json"
 RUTA_USUARIOS = RUTA_PROYECTO / "data" / "usuarios" / "USUARIOS.json"
+RUTA_REGISTRO = RUTA_PROYECTO / "data" / "registros" / "EJECUCIONES_PRONOSTICO.csv"
+RUTA_RETROSPECTIVO = RUTA_PROYECTO / "data" / "processed" / "RETROSPECTIVO_CTRELEUW.csv"
+
+MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
 
 @st.cache_data
 def leer_serie():
@@ -88,3 +92,38 @@ def historial_estacion(estacion):
     historial = historial[(historial["ESTACION"] == estacion) & historial["COMPLETA"]].copy()
     historial["ETIQUETA"] = [etiqueta_estacion(e, a) for e, a in zip(historial["ESTACION"], historial["ANIO_ESTACION"])]
     return historial[["ANIO_ESTACION", "ETIQUETA", "MAXIMO_MW", "DECLARADA_MAX_MW", "DECLARADA_MEDIA_MW"]]
+
+
+@st.cache_data
+def calcular_pronostico(estacion, anio):
+    """Guarda en caché el pronóstico de la estación con la regresión cuantílica, Holt-Winters y la repetición del pico anterior"""
+    serie = leer_serie()
+    futuro, _, cuantiles_maximo, entrenamiento = pronosticar_estacion(serie, estacion, anio)
+    pronostico_hw = pronosticar_hw_estacion(serie, estacion, anio)
+    maximos = calcular_maximos_estacionales(serie)
+    anterior = maximos[(maximos["ESTACION"] == estacion) & (maximos["ANIO_ESTACION"] == anio - 1)]
+    modelos = pd.DataFrame({
+        "Modelo": ["Regresión cuantílica (valor central)", "Repetición del pico de la estación anterior", "Holt-Winters"],
+        "Máximo estacional pronosticado (MW)": [cuantiles_maximo[1], anterior["MAXIMO_MW"].iloc[0], pronostico_hw.max()],
+    })
+    return futuro, cuantiles_maximo, modelos, entrenamiento
+
+
+def ejecutar_pronostico(estacion, anio):
+    """Ejecuta el pronóstico de la estación y agrega la ejecución al registro"""
+    futuro, cuantiles_maximo, modelos, entrenamiento = calcular_pronostico(estacion, anio)
+    inicio, fin = fechas_estacion(estacion, anio)
+    registro = registrar_ejecucion(leer_serie(), entrenamiento, inicio, fin, cuantiles_maximo, RUTA_REGISTRO)
+    return futuro, cuantiles_maximo, modelos, registro
+
+
+def formato_mes(fecha):
+    """Devuelve el mes como texto abreviado junto con su año en castellano"""
+    return f"{MESES[fecha.month - 1]} {fecha.year}"
+
+
+@st.cache_data
+def cobertura_retrospectiva():
+    """Devuelve la cobertura observada de la banda del máximo estacional en el pronóstico retrospectivo"""
+    retrospectivo = pd.read_csv(RUTA_RETROSPECTIVO)
+    return cobertura_banda(retrospectivo["MAXIMO_MW"], retrospectivo["Q10_MW"], retrospectivo["Q90_MW"])

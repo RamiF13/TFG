@@ -13,7 +13,7 @@ def pantalla_ingreso():
     st.caption("Historia HU-08 - Operador del prototipo y Responsable de la declaración")
     _, centro, _ = st.columns([1, 1, 1])
     with centro.container(border=True):
-        st.subheader("Soporte a la declaración de Demanda Máxima Estacional")
+        st.subheader("Soporte a la declaración de Demanda Máxima Estacional", anchor=False)
         st.caption("Agente CTRELEUW")
         with st.form("ingreso"):
             usuario = st.text_input("Usuario")

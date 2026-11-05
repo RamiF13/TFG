@@ -5,7 +5,7 @@ import pandas as pd
 from servicios import calcular_consulta, formato_mw, formato_usd, estacion_a_declarar, nombre_estacion, fechas_actualizacion, historial_estacion, formato_millones, etiqueta_estacion
 
 
-st.title("Consulta de la declaración")
+st.title("Consulta de la declaración", anchor=False)
 st.caption("Historias HU-06 y HU-07 - Responsable de la declaración")
 
 
