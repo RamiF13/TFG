@@ -37,7 +37,21 @@ else:
         if st.button("Cerrar sesión"):
             st.session_state["rol"] = None
             st.rerun()
-    consulta = st.Page("paginas/consulta_declaracion.py", title="5. Consulta de la declaración")
-    navegacion = st.navigation({"Responsable de la declaración": [consulta]})
+    if st.session_state["rol"] == "OPERADOR":
+        paginas = {"Operador del prototipo": [
+            st.Page("paginas/carga_calidad.py", title="1. Carga y calidad de datos"),
+            st.Page("paginas/ejecucion_pronostico.py", title="2. Ejecución del pronóstico"),
+            st.Page("paginas/parametros_regulatorios.py", title="3. Parámetros regulatorios"),
+        ]}
+    elif st.session_state["rol"] == "RESPONSABLE":
+        paginas = {"Responsable de la declaración": [
+            st.Page("paginas/evaluacion_retrospectiva.py", title="4. Evaluación retrospectiva"),
+            st.Page("paginas/consulta_declaracion.py", title="5. Consulta de la declaración", default=True),
+        ]}
+    else:
+        st.error("El rol del usuario no es válido.")
+        st.stop()
+    navegacion = st.navigation(paginas)
+
 
 navegacion.run()
