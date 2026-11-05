@@ -9,10 +9,11 @@ sys.path.append(str(RUTA_PROYECTO / "src"))
 
 from modelado import asignar_estaciones, calcular_maximos_estacionales, pronosticar_estacion, proxima_estacion
 from regulacion import cargar_parametros, proyectar_cargo, vigencia_parametros, declaradas_estacionales, senalar_ajuste
+from usuarios import verificar_ingreso
 
 RUTA_SERIE = RUTA_PROYECTO / "data" / "processed" / "SERIE_TRABAJO_CTRELEUW.csv"
 RUTA_PARAMETROS = RUTA_PROYECTO / "data" / "parametros" / "PARAMETROS_REGULATORIOS.json"
-
+RUTA_USUARIOS = RUTA_PROYECTO / "data" / "usuarios" / "USUARIOS.json"
 
 @st.cache_data
 def leer_serie():
