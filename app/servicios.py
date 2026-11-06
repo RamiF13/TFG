@@ -8,10 +8,13 @@ import streamlit as st
 RUTA_PROYECTO = Path(__file__).resolve().parents[1]
 sys.path.append(str(RUTA_PROYECTO / "src"))
 
-from modelado import asignar_estaciones, calcular_maximos_estacionales, pronosticar_estacion, proxima_estacion, pronosticar_hw_estacion, fechas_estacion, registrar_ejecucion, cobertura_banda
+from modelado import asignar_estaciones, calcular_maximos_estacionales, pronosticar_estacion, proxima_estacion, pronosticar_hw_estacion, fechas_estacion, registrar_ejecucion, cobertura_banda, union_serie_trabajo
 from regulacion import cargar_parametros, proyectar_cargo, vigencia_parametros, declaradas_estacionales, senalar_ajuste, calcular_piso, sobrecosto_por_estacion, guardar_parametros
 from usuarios import verificar_ingreso
 from evaluacion import errores_maximo, cargos_retrospectivos, unir_estaciones, resumen_metricas, MODELOS
+from carga_cammesa import union_filtro, meses_faltantes, csv_tabla
+from carga_openmeteo import calculos_mensuales
+from calidad import rango, rangos_temperatura, rangos_cammesa
 
 RUTA_SERIE = RUTA_PROYECTO / "data" / "processed" / "SERIE_TRABAJO_CTRELEUW.csv"
 RUTA_PARAMETROS = RUTA_PROYECTO / "data" / "parametros" / "PARAMETROS_REGULATORIOS.json"
@@ -19,6 +22,10 @@ RUTA_USUARIOS = RUTA_PROYECTO / "data" / "usuarios" / "USUARIOS.json"
 RUTA_REGISTRO = RUTA_PROYECTO / "data" / "registros" / "EJECUCIONES_PRONOSTICO.csv"
 RUTA_RETROSPECTIVO = RUTA_PROYECTO / "data" / "processed" / "RETROSPECTIVO_CTRELEUW.csv"
 RUTA_RETROSPECTIVO_MENSUAL = RUTA_PROYECTO / "data" / "processed" / "RETROSPECTIVO_MENSUAL_CTRELEUW.csv"
+RUTA_RAW_CAMMESA = RUTA_PROYECTO / "data" / "raw" / "cammesa"
+RUTA_RAW_OPENMETEO = RUTA_PROYECTO / "data" / "raw" / "openmeteo"
+RUTA_CAMMESA = RUTA_PROYECTO / "data" / "processed" / "CAMMESA_CTRELEUW_ReqMax.csv"
+RUTA_TEMPERATURA = RUTA_PROYECTO / "data" / "processed" / "OPENMETEO_TRELEW_TempMensual.csv"
 INICIO_REGIMEN = pd.Timestamp("2025-11-01")
 
 MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
@@ -29,6 +36,35 @@ def leer_serie():
     serie = pd.read_csv(RUTA_SERIE, parse_dates=["MES"])
     serie = asignar_estaciones(serie)
     return serie
+
+def actualizar_serie_trabajo():
+    """Regenera los CSV de CAMMESA, de temperatura y la serie de trabajo a partir de los archivos crudos, y borra la caché de la app"""
+    rutas_cammesa = sorted(RUTA_RAW_CAMMESA.glob("CAMMESA_MEM_ReqMax_*.xlsx"))
+    cammesa = union_filtro(rutas_cammesa)
+    csv_tabla(cammesa, RUTA_CAMMESA)
+    ruta_temperatura = sorted(RUTA_RAW_OPENMETEO.glob("OPENMETEO_ERA5_temp_*.json"))[-1]
+    with open(ruta_temperatura, encoding="utf-8") as archivo:
+        temperatura = calculos_mensuales(json.load(archivo))
+    csv_tabla(temperatura, RUTA_TEMPERATURA)
+    cammesa = pd.read_csv(RUTA_CAMMESA, parse_dates=["MES"])
+    temperatura = pd.read_csv(RUTA_TEMPERATURA, parse_dates=["MES"])
+    serie = union_serie_trabajo(cammesa, temperatura)
+    csv_tabla(serie, RUTA_SERIE)
+    st.cache_data.clear()
+    return serie
+
+
+def informe_calidad(serie):
+    """Resume los controles de calidad de la serie: meses faltantes, revisados entre ediciones, posible copia de la declaración y valores fuera de rango"""
+    estaciones = calcular_maximos_estacionales(asignar_estaciones(serie.copy()))
+    return {
+        "faltantes": meses_faltantes(serie),
+        "revisados": serie.loc[serie["REVISADO"], "MES"],
+        "posible_copia": serie.loc[serie["POSIBLE_COPIA_DECLARACION"], "MES"],
+        "fuera_rango_demanda": serie.loc[rango(serie, rangos_cammesa), "MES"],
+        "fuera_rango_temperatura": serie.loc[rango(serie, rangos_temperatura), "MES"],
+        "estaciones_incompletas": estaciones.loc[~estaciones["COMPLETA"], ["ESTACION", "ANIO_ESTACION", "MESES"]]
+    }
 
 
 def leer_parametros():
