@@ -98,8 +98,8 @@ def validar_parametros(parametros):
     for clave in ["porcentaje_piso", "porcentaje_transitorio"]:
         if not (0 <= parametros[clave] <= 100):
             errores.append(f"El parámetro {clave} tiene que estar entre 0 y 100, y vale {parametros[clave]}")
-    if not (0 <= parametros["horas_hrp_por_dia"] <= 24):
-        errores.append(f"El parámetro horas_hrp_por_dia tiene que estar entre 0 y 24, y vale {parametros['horas_hrp_por_dia']}")
+    if not (0 < parametros["horas_hrp_por_dia"] <= 24):
+        errores.append(f"El parámetro horas_hrp_por_dia tiene que ser mayor que 0 y como máximo 24, y vale {parametros['horas_hrp_por_dia']}")
     for mes in meses:
         if not (1 <= mes <=12): 
             errores.append(f"El mes {mes} de meses_kp_pico no es válido, tiene que estar entre 1 y 12")
@@ -120,6 +120,9 @@ def guardar_parametros(ruta, editados):
     for clave in editados:
         for campo in ["valor", "norma", "vigencia_desde"]:
             datos[clave][campo] = editados[clave][campo]
+    sin_norma = [clave for clave in datos if not str(datos[clave]["norma"]).strip()]
+    if sin_norma:
+        raise ValueError(f"Estos parámetros no tienen norma: {', '.join(sin_norma)}")
     validar_parametros({clave: datos[clave]["valor"] for clave in datos})
     with open(ruta, "w", encoding="utf-8") as archivo:
         json.dump(datos, archivo, ensure_ascii=False, indent=4)
