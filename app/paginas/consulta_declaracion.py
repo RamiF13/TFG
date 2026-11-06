@@ -21,6 +21,12 @@ with st.spinner("Calculando el pronóstico..."):
     futuro, cuantiles_maximo, maximos, senal = calcular_consulta(estacion, anio, leer_parametros())
 
 piso = futuro["PISO_MW"].iloc[0]
+if pd.isna(piso):
+    st.error(
+        f"No se puede calcular el piso de {nombre_estacion(estacion, anio)} porque la misma estación del año anterior "
+        "no tiene sus seis meses de datos. Revise el informe de calidad en la pantalla de carga y calidad de datos."
+    )
+    st.stop()
 anterior = maximos[(maximos["ESTACION"] == estacion) & (maximos["ANIO_ESTACION"] == anio - 1)]
 maximo_anterior = anterior["MAXIMO_MW"].iloc[0]
 porcentaje = round(piso / maximo_anterior * 100)
