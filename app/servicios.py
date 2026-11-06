@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 import pandas as pd
 import streamlit as st
+from datetime import date, timedelta
 
 RUTA_PROYECTO = Path(__file__).resolve().parents[1]
 sys.path.append(str(RUTA_PROYECTO / "src"))
@@ -12,8 +13,8 @@ from modelado import asignar_estaciones, calcular_maximos_estacionales, pronosti
 from regulacion import cargar_parametros, proyectar_cargo, vigencia_parametros, declaradas_estacionales, senalar_ajuste, calcular_piso, sobrecosto_por_estacion, guardar_parametros
 from usuarios import verificar_ingreso
 from evaluacion import errores_maximo, cargos_retrospectivos, unir_estaciones, resumen_metricas, MODELOS
-from carga_cammesa import union_filtro, meses_faltantes, csv_tabla
-from carga_openmeteo import calculos_mensuales
+from carga_cammesa import union_filtro, meses_faltantes, csv_tabla, leer_reqmax, filtrar_agente, extraer_fechas
+from carga_openmeteo import calculos_mensuales, obtener_era5, guardar_consulta, latitud, longitud
 from calidad import rango, rangos_temperatura, rangos_cammesa
 
 RUTA_SERIE = RUTA_PROYECTO / "data" / "processed" / "SERIE_TRABAJO_CTRELEUW.csv"
@@ -26,6 +27,7 @@ RUTA_RAW_CAMMESA = RUTA_PROYECTO / "data" / "raw" / "cammesa"
 RUTA_RAW_OPENMETEO = RUTA_PROYECTO / "data" / "raw" / "openmeteo"
 RUTA_CAMMESA = RUTA_PROYECTO / "data" / "processed" / "CAMMESA_CTRELEUW_ReqMax.csv"
 RUTA_TEMPERATURA = RUTA_PROYECTO / "data" / "processed" / "OPENMETEO_TRELEW_TempMensual.csv"
+INICIO_TEMPERATURA = "2019-01-01"
 INICIO_REGIMEN = pd.Timestamp("2025-11-01")
 
 MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
@@ -65,6 +67,43 @@ def informe_calidad(serie):
         "fuera_rango_temperatura": serie.loc[rango(serie, rangos_temperatura), "MES"],
         "estaciones_incompletas": estaciones.loc[~estaciones["COMPLETA"], ["ESTACION", "ANIO_ESTACION", "MESES"]]
     }
+
+def guardar_archivo_cammesa(archivo, descarga):
+    """Valida el Excel de Req Máx subido por el Operador y lo guarda en data/raw/cammesa, con la edición tomada del último mes del archivo y la fecha de descarga indicada"""
+    try:
+        agente = filtrar_agente(leer_reqmax(archivo))
+    except (KeyError, ValueError):
+        raise ValueError("El archivo no tiene la estructura de la base Req Máx de CAMMESA")
+    if agente.empty:
+        raise ValueError("El archivo no contiene registros del agente CTRELEUW")
+    edicion = pd.to_datetime(agente["MES"]).max().strftime("%Y-%m")
+    ruta = RUTA_RAW_CAMMESA / f"CAMMESA_MEM_ReqMax_{edicion}_{descarga.isoformat()}.xlsx"
+    if ruta.exists():
+        raise ValueError(f"Ya existe el archivo {ruta.name}. Los archivos originales no se sobrescriben")
+    ruta.write_bytes(archivo.getvalue())
+    return ruta.name
+
+
+def descargar_temperatura():
+    """Descarga de Open-Meteo (ERA5) la temperatura diaria hasta el último día del mes anterior y la guarda en data/raw/openmeteo"""
+    fin = (date.today().replace(day=1) - timedelta(days=1)).isoformat()
+    ruta = RUTA_RAW_OPENMETEO / f"OPENMETEO_ERA5_temp_{INICIO_TEMPERATURA}_{fin}_{date.today().isoformat()}.json"
+    if ruta.exists():
+        raise ValueError(f"Ya existe la descarga {ruta.name}. Los archivos originales no se sobrescriben")
+    guardar_consulta(obtener_era5(INICIO_TEMPERATURA, fin), ruta)
+    return ruta.name
+
+def archivos_disponibles():
+    """Lista los archivos originales de CAMMESA y de Open-Meteo con las fechas que llevan en el nombre"""
+    cammesa = []
+    for ruta in sorted(RUTA_RAW_CAMMESA.glob("CAMMESA_MEM_ReqMax_*.xlsx")):
+        edicion, descarga = extraer_fechas(ruta)
+        cammesa.append({"Archivo": ruta.name, "Edición": edicion, "Descarga": descarga})
+    temperatura = []
+    for ruta in sorted(RUTA_RAW_OPENMETEO.glob("OPENMETEO_ERA5_temp_*.json")):
+        inicio, fin, descarga = ruta.stem.split("_")[3:]
+        temperatura.append({"Archivo": ruta.name, "Desde": inicio, "Hasta": fin, "Descarga": descarga})
+    return pd.DataFrame(cammesa), pd.DataFrame(temperatura)
 
 
 def leer_parametros():
