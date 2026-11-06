@@ -18,7 +18,10 @@ if realizar:
     try:
         st.session_state["pronostico"] = ejecutar_pronostico(estacion, anio)
     except PermissionError:
-        st.error("No se pudo registrar la ejecución porque el archivo de registro está abierto en otro programa. Cerrar el archivo y volver a realizar el pronóstico.")
+        st.error("No se pudo registrar la ejecución porque el archivo de registro está abierto en otro programa. Cierre el archivo y vuelva a realizar el pronóstico.")
+        st.stop()
+    except ValueError as error:
+        st.error(str(error))
         st.stop()
 
 if "pronostico" not in st.session_state:

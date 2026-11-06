@@ -80,6 +80,9 @@ def pronostico_ingenuo(maximos):
 def preparar_serie_hw(serie, fecha_atipica=FECHA_ATIPICA):
     """Arma la serie mensual para Holt-Winters, reemplazando el mes atípico por el promedio del mismo mes en los demás años"""
     serie_mensual = serie.set_index("MES")["MAX_REAL_MW"].asfreq("MS")
+    faltantes = serie_mensual.index[serie_mensual.isna() & (serie_mensual.index != fecha_atipica)]
+    if len(faltantes) > 0:
+        raise ValueError(f"La serie tiene meses sin demanda máxima ({', '.join(f'{mes:%m/%Y}' for mes in faltantes)}). Holt-Winters requiere una serie mensual sin huecos. Revise el informe de calidad.")
     fecha_tipica_mask = (serie_mensual.index.month == fecha_atipica.month) & (serie_mensual.index.year != fecha_atipica.year)
     fechas_normales = serie_mensual[fecha_tipica_mask]
     promedio_mes = fechas_normales.mean()
