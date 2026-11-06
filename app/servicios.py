@@ -9,7 +9,7 @@ from datetime import date, timedelta
 RUTA_PROYECTO = Path(__file__).resolve().parents[1]
 sys.path.append(str(RUTA_PROYECTO / "src"))
 
-from modelado import asignar_estaciones, calcular_maximos_estacionales, pronosticar_estacion, proxima_estacion, pronosticar_hw_estacion, fechas_estacion, registrar_ejecucion, cobertura_banda, union_serie_trabajo
+from modelado import asignar_estaciones, calcular_maximos_estacionales, pronosticar_estacion, proxima_estacion, pronosticar_hw_estacion, fechas_estacion, registrar_ejecucion, cobertura_banda, union_serie_trabajo, pronostico_retrospectivo, pronostico_ingenuo
 from regulacion import cargar_parametros, proyectar_cargo, vigencia_parametros, declaradas_estacionales, senalar_ajuste, calcular_piso, sobrecosto_por_estacion, guardar_parametros
 from usuarios import verificar_ingreso
 from evaluacion import errores_maximo, cargos_retrospectivos, unir_estaciones, resumen_metricas, MODELOS
@@ -28,6 +28,7 @@ RUTA_RAW_OPENMETEO = RUTA_PROYECTO / "data" / "raw" / "openmeteo"
 RUTA_CAMMESA = RUTA_PROYECTO / "data" / "processed" / "CAMMESA_CTRELEUW_ReqMax.csv"
 RUTA_TEMPERATURA = RUTA_PROYECTO / "data" / "processed" / "OPENMETEO_TRELEW_TempMensual.csv"
 INICIO_TEMPERATURA = "2019-01-01"
+INICIO_EVALUACION = 2021
 INICIO_REGIMEN = pd.Timestamp("2025-11-01")
 
 MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
@@ -38,6 +39,17 @@ def leer_serie():
     serie = pd.read_csv(RUTA_SERIE, parse_dates=["MES"])
     serie = asignar_estaciones(serie)
     return serie
+
+
+def actualizar_retrospectivo(serie):
+    """Regenera el pronóstico retrospectivo de las estaciones utilizables desde INICIO_EVALUACION"""
+    maximos = pronostico_ingenuo(calcular_maximos_estacionales(serie))
+    evaluadas = maximos["UTILIZABLE"] & (maximos["ANIO_ESTACION"] >= INICIO_EVALUACION)
+    estaciones = maximos.loc[evaluadas, ["ESTACION", "ANIO_ESTACION", "MAXIMO_MW", "PRONOSTICO_ANT"]].reset_index(drop=True)
+    retrospectivo, mensuales = pronostico_retrospectivo(serie, estaciones)
+    csv_tabla(retrospectivo, RUTA_RETROSPECTIVO)
+    csv_tabla(mensuales, RUTA_RETROSPECTIVO_MENSUAL)
+
 
 def actualizar_serie_trabajo():
     """Regenera los CSV de CAMMESA, de temperatura y la serie de trabajo a partir de los archivos crudos, y borra la caché de la app"""
@@ -52,6 +64,7 @@ def actualizar_serie_trabajo():
     temperatura = pd.read_csv(RUTA_TEMPERATURA, parse_dates=["MES"])
     serie = union_serie_trabajo(cammesa, temperatura)
     csv_tabla(serie, RUTA_SERIE)
+    actualizar_retrospectivo(asignar_estaciones(pd.read_csv(RUTA_SERIE, parse_dates=["MES"])))
     st.cache_data.clear()
     return serie
 

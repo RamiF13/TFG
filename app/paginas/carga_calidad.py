@@ -81,7 +81,7 @@ with abrir_seccion("temperatura", "Descargar la temperatura"):
             avisar("temperatura", f"Se guardó {nombre}. Actualice la serie de trabajo para incorporarlo.")
 
 with abrir_seccion("serie", "Actualizar la serie de trabajo"):
-    st.write("Vuelve a armar la serie con todos los archivos originales. Los archivos originales no se modifican.")
+    st.write("Reconstruye la serie de trabajo y la evaluación retrospectiva a partir de los archivos originales. El proceso puede demorar.")
     if st.button("Actualizar serie de trabajo", type="primary", on_click=abrir, args=("serie",)):
         try:
             with st.spinner("Actualizando la serie..."):
@@ -89,7 +89,7 @@ with abrir_seccion("serie", "Actualizar la serie de trabajo"):
         except ValueError as error:
             st.error(str(error))
         else:
-            avisar("serie", "La serie de trabajo se actualizó. Las demás pantallas ya utilizan los datos nuevos.")
+            avisar("serie", "Se actualizaron la serie de trabajo y la evaluación retrospectiva. Todas las pantallas operan con los datos incorporados.")
 
 # Informe de calidad
 st.subheader("Informe de calidad", anchor=False)
