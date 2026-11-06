@@ -4,6 +4,8 @@ import json
 
 # obtener_era5
 url_base = "https://archive-api.open-meteo.com/v1/archive"
+latitud = -43.20894
+longitud = -65.28209
 
 # calculos
 calcs = {"temperature_2m_mean" : "mean",
@@ -21,8 +23,8 @@ nombres_columnas = {"time" : "MES",
 def obtener_era5(inicio,fin):
     """Consulta a la API Open-Meteo (ERA5) y devuelve la respuesta en JSON"""
     diccionario = {
-    "latitude" : -43.20894,
-    "longitude" : -65.28209,
+    "latitude" : latitud,
+    "longitude" : longitud,
     "start_date" : inicio,
     "end_date" : fin,
     "timezone" : "America/Argentina/Buenos_Aires",
