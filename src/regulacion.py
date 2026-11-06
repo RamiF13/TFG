@@ -107,8 +107,22 @@ def validar_parametros(parametros):
         errores.append(f"meses_kp_pico tiene meses repetidos: {meses}")
     if parametros["estacion_transitoria"] not in ["VERANO", "INVIERNO"]:
         errores.append(f"estacion_transitoria tiene que ser VERANO o INVIERNO, y es {parametros['estacion_transitoria']}")
+    if not (2000 <= parametros["anio_transitorio"] <= 2100):
+        errores.append(f"El parámetro anio_transitorio tiene que ser un año de cuatro cifras entre 2000 y 2100, y vale {parametros['anio_transitorio']}")
     if errores:
         raise ValueError("\n".join(errores))
+
+
+def guardar_parametros(ruta, editados):
+    """Combina los campos editados con el archivo actual, valida los valores y guarda el archivo conservando la unidad de cada parámetro"""
+    with open(ruta, encoding="utf-8") as archivo:
+        datos = json.load(archivo)
+    for clave in editados:
+        for campo in ["valor", "norma", "vigencia_desde"]:
+            datos[clave][campo] = editados[clave][campo]
+    validar_parametros({clave: datos[clave]["valor"] for clave in datos})
+    with open(ruta, "w", encoding="utf-8") as archivo:
+        json.dump(datos, archivo, ensure_ascii=False, indent=4)
 
 
 def cargo_escenarios(tabla, escenarios, columna_declarada="PISO_MW", parametros=parametros_defecto):
