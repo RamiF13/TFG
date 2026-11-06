@@ -1,7 +1,7 @@
 import streamlit as st
 import altair as alt
 import pandas as pd
-from servicios import calcular_evaluacion, resumen_metricas, cobertura_banda, etiqueta_estacion, formato_usd, formato_miles, leer_parametros
+from servicios import calcular_evaluacion, resumen_metricas, cobertura_banda, etiqueta_estacion, formato_usd, formato_miles, formato_decimal, leer_parametros
 
 st.title("Evaluación retrospectiva", anchor=False)
 st.caption("Historia HU-05 - Responsable de la declaración")
@@ -57,8 +57,8 @@ metricas = resumen_metricas(errores, cargos)
 cobertura = cobertura_banda(estaciones["MAXIMO_MW"], estaciones["Q10_MW"], estaciones["Q90_MW"])
 tabla = pd.DataFrame({
     "Modelo": metricas["MODELO"],
-    "Error absoluto medio (MW)": [f"{v:.2f}".replace(".", ",") for v in metricas["MAE_MW"]],
-    "Sesgo (MW)": [f"{v:+.2f}".replace(".", ",") for v in metricas["SESGO_MW"]],
+    "Error absoluto medio (MW)": [formato_decimal(v) for v in metricas["MAE_MW"]],
+    "Sesgo (MW)": [formato_decimal(v, "+.2f") for v in metricas["SESGO_MW"]],
     "Cobertura de la banda": [f"{cobertura:.0%}", "-", "-"],
     "Error absoluto medio del cargo (U$S)": [formato_miles(v) for v in metricas["MAE_CARGO_USD"]],
 })
@@ -71,7 +71,7 @@ st.caption(
 # Sobrecosto
 col_sobrecosto, col_nota = st.columns(2)
 detalle = " - ".join(
-    f"{etiqueta_estacion(fila['ESTACION'], fila['ANIO_ESTACION'])} ({fila['MESES']} meses): U\\$S {formato_miles(fila['SOBRECOSTO_USD'])}"
+    f"{etiqueta_estacion(fila['ESTACION'], fila['ANIO_ESTACION'])} ({fila['MESES']} meses): {formato_usd(fila['SOBRECOSTO_USD'])}"
     for _, fila in sobrecosto.iterrows()
 )
 with col_sobrecosto.container(border=True):

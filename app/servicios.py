@@ -12,7 +12,7 @@ sys.path.append(str(RUTA_PROYECTO / "src"))
 from modelado import asignar_estaciones, calcular_maximos_estacionales, pronosticar_estacion, proxima_estacion, pronosticar_hw_estacion, fechas_estacion, registrar_ejecucion, cobertura_banda, union_serie_trabajo, pronostico_retrospectivo, pronostico_ingenuo
 from regulacion import cargar_parametros, proyectar_cargo, vigencia_parametros, declaradas_estacionales, senalar_ajuste, calcular_piso, sobrecosto_por_estacion, guardar_parametros
 from usuarios import verificar_ingreso
-from evaluacion import errores_maximo, cargos_retrospectivos, unir_estaciones, resumen_metricas, MODELOS
+from evaluacion import errores_maximo, cargos_retrospectivos, unir_estaciones, resumen_metricas
 from carga_cammesa import union_filtro, meses_faltantes, csv_tabla, leer_reqmax, filtrar_agente, extraer_fechas
 from carga_openmeteo import calculos_mensuales, obtener_era5, guardar_consulta, latitud, longitud
 from calidad import rango, rangos_temperatura, rangos_cammesa
@@ -255,3 +255,8 @@ def calcular_evaluacion(parametros):
 def formato_miles(valor):
     """Devuelve el número sin decimales y con punto de miles"""
     return f"{valor:,.0f}".replace(",", ".")
+
+
+def formato_decimal(valor, formato=".2f"):
+    """Devuelve el número con el formato indicado y coma decimal"""
+    return f"{valor:{formato}}".replace(".", ",")
