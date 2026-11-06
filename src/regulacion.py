@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import json
-
+from modelado import estacion_anterior
 
 #parámetros regulatorios por defecto (mismas claves que PARAMETROS_REGULATORIOS.json)
 
@@ -21,9 +21,9 @@ parametros_defecto = {
 
 def calcular_piso(maximos, parametros=parametros_defecto):
     """Calcula el piso de cada estación en base a la anterior, si esta estaba completa"""
-    maximo_anterior = maximos.groupby("ESTACION")["MAXIMO_MW"].shift(1)
-    anterior_completa = maximos.groupby("ESTACION")["COMPLETA"].shift(1)
-    maximos["MAXIMO_ANTERIOR_MW"] = maximo_anterior.where(anterior_completa == True)
+    maximos = estacion_anterior(maximos, ["MAXIMO_MW", "COMPLETA"])
+    maximos["MAXIMO_ANTERIOR_MW"] = maximos["MAXIMO_MW_ANTERIOR"].where(maximos["COMPLETA_ANTERIOR"] == True)
+    maximos = maximos.drop(columns=["MAXIMO_MW_ANTERIOR", "COMPLETA_ANTERIOR"])
     maximos["PORCENTAJE_PISO"] = parametros["porcentaje_piso"] / 100
     transitorio = (maximos["ESTACION"] == parametros["estacion_transitoria"]) & (maximos["ANIO_ESTACION"] == parametros["anio_transitorio"])
     maximos.loc[transitorio, "PORCENTAJE_PISO"] = parametros["porcentaje_transitorio"] / 100

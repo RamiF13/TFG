@@ -67,11 +67,21 @@ def calcular_maximos_estacionales(serie):
     return tabla
 
 
+def estacion_anterior(maximos, columnas):
+    """Agrega a cada estación las columnas indicadas de la misma estación del año anterior, con el sufijo _ANTERIOR. Queda vacío si ese año no existe"""
+    anterior = maximos[["ESTACION", "ANIO_ESTACION"] + columnas].copy()
+    anterior["ANIO_ESTACION"] = anterior["ANIO_ESTACION"] + 1
+    anterior = anterior.rename(columns={columna: f"{columna}_ANTERIOR" for columna in columnas})
+    resultado = maximos.drop(columns=list(anterior.columns[2:]), errors="ignore").merge(anterior, on=["ESTACION", "ANIO_ESTACION"], how="left")
+    resultado.index = maximos.index
+    return resultado
+
+
 def pronostico_ingenuo(maximos):
     """Pronostica cada estación con el máximo de la misma estación del año anterior, si era utilizable y calcula su error"""
-    maximos["PRONOSTICO_ANT"] = maximos.groupby("ESTACION")["MAXIMO_MW"].shift(1)
-    ant_utilizable = maximos.groupby("ESTACION")["UTILIZABLE"].shift(1)
-    maximos["PRONOSTICO_ANT"] = maximos["PRONOSTICO_ANT"].where(ant_utilizable == True)
+    maximos = estacion_anterior(maximos, ["MAXIMO_MW", "UTILIZABLE"])
+    maximos["PRONOSTICO_ANT"] = maximos["MAXIMO_MW_ANTERIOR"].where(maximos["UTILIZABLE_ANTERIOR"] == True)
+    maximos = maximos.drop(columns=["MAXIMO_MW_ANTERIOR", "UTILIZABLE_ANTERIOR"])
     maximos["EVALUABLE"] = maximos["UTILIZABLE"] & maximos["PRONOSTICO_ANT"].notna()
     maximos["ERROR_MW"] = maximos["MAXIMO_MW"] - maximos["PRONOSTICO_ANT"]
     return maximos
