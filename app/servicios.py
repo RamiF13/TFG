@@ -1,4 +1,5 @@
 
+import json
 import sys
 from pathlib import Path
 import pandas as pd
@@ -8,7 +9,7 @@ RUTA_PROYECTO = Path(__file__).resolve().parents[1]
 sys.path.append(str(RUTA_PROYECTO / "src"))
 
 from modelado import asignar_estaciones, calcular_maximos_estacionales, pronosticar_estacion, proxima_estacion, pronosticar_hw_estacion, fechas_estacion, registrar_ejecucion, cobertura_banda
-from regulacion import cargar_parametros, proyectar_cargo, vigencia_parametros, declaradas_estacionales, senalar_ajuste, calcular_piso, sobrecosto_por_estacion
+from regulacion import cargar_parametros, proyectar_cargo, vigencia_parametros, declaradas_estacionales, senalar_ajuste, calcular_piso, sobrecosto_por_estacion, guardar_parametros
 from usuarios import verificar_ingreso
 from evaluacion import errores_maximo, cargos_retrospectivos, unir_estaciones, resumen_metricas, MODELOS
 
@@ -33,6 +34,17 @@ def leer_serie():
 def leer_parametros():
     """Lee los parámetros regulatorios del JSON"""
     return cargar_parametros(RUTA_PARAMETROS)
+
+
+def leer_parametros_completos():
+    """Lee el archivo de parámetros con el valor, la unidad, la norma y la vigencia de cada uno, para mostrarlos en la pantalla"""
+    with open(RUTA_PARAMETROS, encoding="utf-8") as archivo:
+        return json.load(archivo)
+
+
+def guardar_parametros_editados(editados):
+    """Guarda los parámetros editados en la pantalla. Si algún valor no es válido, da ValueError y no escribe el archivo"""
+    guardar_parametros(RUTA_PARAMETROS, editados)
 
 
 @st.cache_data
