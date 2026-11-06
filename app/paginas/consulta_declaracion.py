@@ -2,8 +2,7 @@
 import streamlit as st
 import altair as alt
 import pandas as pd
-from servicios import calcular_consulta, formato_mw, formato_usd, estacion_a_declarar, nombre_estacion, fechas_actualizacion, historial_estacion, formato_millones, etiqueta_estacion
-
+from servicios import calcular_consulta, formato_mw, formato_usd, estacion_a_declarar, nombre_estacion, fechas_actualizacion, historial_estacion, formato_millones, etiqueta_estacion, leer_parametros
 
 st.title("Consulta de la declaración", anchor=False)
 st.caption("Historias HU-06 y HU-07 - Responsable de la declaración")
@@ -19,8 +18,7 @@ col_info.caption(f"Última carga de datos: {ultima_carga} - Parámetros vigentes
 
 
 with st.spinner("Calculando el pronóstico..."):
-    futuro, cuantiles_maximo, maximos, senal = calcular_consulta(estacion, anio)
-
+    futuro, cuantiles_maximo, maximos, senal = calcular_consulta(estacion, anio, leer_parametros())
 
 piso = futuro["PISO_MW"].iloc[0]
 anterior = maximos[(maximos["ESTACION"] == estacion) & (maximos["ANIO_ESTACION"] == anio - 1)]
@@ -40,7 +38,7 @@ with col3.container(border=True):
     st.metric("Banda de incertidumbre", f"{formato_mw(cuantiles_maximo[0])} a {formato_mw(cuantiles_maximo[2])}")
     st.caption("Inferior a superior")
 with col4.container(border=True):
-    st.metric("Cargo proyectado", f"U\\$S {formato_millones(cargo['CARGO_Q10_USD'])} a {formato_millones(cargo['CARGO_Q90_USD'])} M")
+    st.metric("Cargo proyectado", f"U\\$S {formato_millones(cargo['CARGO_Q10_USD'])}M a {formato_millones(cargo['CARGO_Q90_USD'])}M")
     st.caption(f"Central: {formato_usd(cargo['CARGO_Q50_USD'])}. Al declarar el piso")
 
 

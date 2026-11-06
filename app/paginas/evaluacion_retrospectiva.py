@@ -1,12 +1,12 @@
 import streamlit as st
 import altair as alt
 import pandas as pd
-from servicios import calcular_evaluacion, resumen_metricas, cobertura_banda, etiqueta_estacion, formato_usd, formato_miles
+from servicios import calcular_evaluacion, resumen_metricas, cobertura_banda, etiqueta_estacion, formato_usd, formato_miles, leer_parametros
 
 st.title("Evaluación retrospectiva", anchor=False)
 st.caption("Historia HU-05 - Responsable de la declaración")
 
-estaciones, errores, cargos, sobrecosto = calcular_evaluacion()
+estaciones, errores, cargos, sobrecosto = calcular_evaluacion(leer_parametros())
 
 col_seleccion, col_info = st.columns(2, vertical_alignment="bottom")
 opcion = col_seleccion.selectbox("Estaciones evaluadas", ["Todas", "Inviernos", "Veranos"])
@@ -71,7 +71,7 @@ st.caption(
 # Sobrecosto
 col_sobrecosto, col_nota = st.columns(2)
 detalle = " - ".join(
-    f"{etiqueta_estacion(fila['ESTACION'], fila['ANIO_ESTACION'])} ({fila['MESES']} meses): U$S {formato_miles(fila['SOBRECOSTO_USD'])}"
+    f"{etiqueta_estacion(fila['ESTACION'], fila['ANIO_ESTACION'])} ({fila['MESES']} meses): U\\$S {formato_miles(fila['SOBRECOSTO_USD'])}"
     for _, fila in sobrecosto.iterrows()
 )
 with col_sobrecosto.container(border=True):

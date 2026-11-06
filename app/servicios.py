@@ -30,11 +30,15 @@ def leer_serie():
     return serie
 
 
+def leer_parametros():
+    """Lee los parámetros regulatorios del JSON"""
+    return cargar_parametros(RUTA_PARAMETROS)
+
+
 @st.cache_data
-def calcular_consulta(estacion, anio):
+def calcular_consulta(estacion, anio, parametros):
     """Guarda en caché el pronóstico de la estación y la proyección del cargo para no recalcularlos en cada interacción"""
     serie = leer_serie()
-    parametros = cargar_parametros(RUTA_PARAMETROS)
     futuro, _, cuantiles_maximo, _ = pronosticar_estacion(serie, estacion, anio)
     maximos = calcular_maximos_estacionales(serie)
     futuro = proyectar_cargo(futuro, maximos, estacion, anio, parametros)
@@ -133,10 +137,9 @@ def cobertura_retrospectiva():
 
 
 @st.cache_data
-def calcular_evaluacion():
+def calcular_evaluacion(parametros):
     """Calcula y guarda en caché todo lo que muestra la pantalla de evaluación retrospectiva"""
     serie = leer_serie()
-    parametros = cargar_parametros(RUTA_PARAMETROS)
     maximos = calcular_piso(calcular_maximos_estacionales(serie), parametros)
     retrospectivo = pd.read_csv(RUTA_RETROSPECTIVO)
     mensual = pd.read_csv(RUTA_RETROSPECTIVO_MENSUAL, parse_dates=["MES"])
