@@ -136,7 +136,7 @@ st.write("Un cambio de unidad o de moneda en la norma requiere modificar el cód
 st.write("El piso transitorio (75% en el verano 2025, Res. SE 22/2026, art. 6) ya venció y se conserva para recalcular esa estación.")
 st.session_state.setdefault("version_formulario", 0)
 with st.form("editar_parametros"):
-    st.write("Abrí los parámetros que quieras cambiar. Los que no abras quedan como están.")
+    st.write("Abra los parámetros que desea cambiar. Aquellos que no cambie no serán modificados.")
     editados = {}
     for clave, dato in originales.items():
         if clave in TRANSITORIOS:
