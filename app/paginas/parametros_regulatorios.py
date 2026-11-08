@@ -15,7 +15,9 @@ ETIQUETAS = {
     "kp_resto": "KP del resto de los meses",
     "meses_kp_pico": "Meses pico del KP",
     "fpunta": "Factor de punta (FPunta)",
-    "horas_hrp_por_dia": "Horas fuera de valle por día",
+    "hrp_dia_habil": "HRP por día hábil",
+    "hrp_sabado": "HRP por sábado",
+    "hrp_domingo": "HRP por domingo",
 }
 CAMPOS = {"valor": "Valor", "norma": "Norma", "vigencia_desde": "Vigencia desde"}
 MESES = {1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril", 5: "Mayo", 6: "Junio",
@@ -23,6 +25,7 @@ MESES = {1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril", 5: "Mayo", 6: "Junio"
 DECIMALES = ["precio_ppad", "kp_pico", "kp_resto", "fpunta"]
 PORCENTAJES = ["porcentaje_piso", "porcentaje_transitorio"]
 TRANSITORIOS = ["porcentaje_transitorio", "estacion_transitoria", "anio_transitorio"]
+HORAS = ["hrp_dia_habil", "hrp_sabado", "hrp_domingo"]
 
 def formato_valor(clave, valor):
     """Devuelve el valor como texto para mostrarlo en las tablas"""
@@ -50,7 +53,7 @@ def control_valor(clave, valor):
         return round(st.number_input("Valor", value=float(valor), min_value=0.0, format="%.2f", key=clave_control(clave, "valor")), 4)
     if clave in PORCENTAJES:
         return round(st.number_input("Valor", value=float(valor), min_value=0.0, max_value=100.0, format="%.2f", key=clave_control(clave, "valor")), 4)
-    if clave == "horas_hrp_por_dia":
+    if clave in HORAS:
         return st.number_input("Valor", value=int(valor), min_value=0, max_value=24, step=1, key=clave_control(clave, "valor"))
     if clave == "anio_transitorio":
         return st.number_input("Valor", value=int(valor), min_value=2000, max_value=2100, step=1, key=clave_control(clave, "valor"))

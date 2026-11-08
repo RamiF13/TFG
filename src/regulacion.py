@@ -15,7 +15,9 @@ parametros_defecto = {
     "kp_resto" : 0.9,
     "meses_kp_pico" : [12, 1, 2, 6, 7, 8],
     "fpunta" : 1,
-    "horas_hrp_por_dia" : 18,
+        "hrp_dia_habil" : 16,
+    "hrp_sabado" : 6,
+    "hrp_domingo" : 4
 }
 
 
@@ -39,11 +41,15 @@ def asignar_piso(serie, maximos):
 
 
 def calcular_hrp(serie, parametros=parametros_defecto):
-    """Calcula los días hábiles y las horas de remuneración de la potencia (HRP) de cada mes"""
+    """Calcula los días de cada tipo y las horas de remuneración de la potencia (HRP) de cada mes, según la tabla de CAMMESA"""
     inicio_mes = serie["MES"].values.astype("datetime64[D]")
     fin_mes = (serie["MES"] + pd.offsets.MonthBegin(1)).values.astype("datetime64[D]")
-    serie["DIAS_HABILES"] = np.busday_count(inicio_mes, fin_mes)
-    serie["HRP"] = serie["DIAS_HABILES"] * parametros["horas_hrp_por_dia"]
+    serie["DIAS_HABILES"] = np.busday_count(inicio_mes, fin_mes, weekmask="1111100")
+    serie["DIAS_SABADO"] = np.busday_count(inicio_mes, fin_mes, weekmask="0000010")
+    serie["DIAS_DOMINGO"] = np.busday_count(inicio_mes, fin_mes, weekmask="0000001")
+    serie["HRP"] = (serie["DIAS_HABILES"] * parametros["hrp_dia_habil"]
+                    + serie["DIAS_SABADO"] * parametros["hrp_sabado"]
+                    + serie["DIAS_DOMINGO"] * parametros["hrp_domingo"])
     return serie
 
 
@@ -98,8 +104,11 @@ def validar_parametros(parametros):
     for clave in ["porcentaje_piso", "porcentaje_transitorio"]:
         if not (0 <= parametros[clave] <= 100):
             errores.append(f"El parámetro {clave} tiene que estar entre 0 y 100, y vale {parametros[clave]}")
-    if not (0 < parametros["horas_hrp_por_dia"] <= 24):
-        errores.append(f"El parámetro horas_hrp_por_dia tiene que ser mayor que 0 y como máximo 24, y vale {parametros['horas_hrp_por_dia']}")
+    if not (0 < parametros["hrp_dia_habil"] <= 24):
+        errores.append(f"El parámetro hrp_dia_habil tiene que ser mayor que 0 y como máximo 24, y vale {parametros['hrp_dia_habil']}")
+    for clave in ["hrp_sabado", "hrp_domingo"]:
+        if not (0 <= parametros[clave] <= 24):
+            errores.append(f"El parámetro {clave} tiene que estar entre 0 y 24, y vale {parametros[clave]}")
     for mes in meses:
         if not (1 <= mes <=12): 
             errores.append(f"El mes {mes} de meses_kp_pico no es válido, tiene que estar entre 1 y 12")

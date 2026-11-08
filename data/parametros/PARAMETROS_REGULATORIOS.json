@@ -68,10 +68,24 @@
 },
 
 
-"horas_hrp_por_dia": {
-    "valor" : 18,
+"hrp_dia_habil": {
+    "valor" : 16,
     "unidad" : "h/día",
-    "norma" : "Bandas horarias de Los Procedimientos de CAMMESA, cap. 2, y semana típica de 90 HRP de la Res. SE 400/2025, punto 6.5",
+    "norma" : "CAMMESA, Programación Estacional nov 2026, Horas de remuneración de potencia (Res. 219/2000), y semana típica de 90 HRP de la Res. SE 400/2025, punto 6.5",
+    "vigencia_desde" : "2025-11-01"
+},
+
+"hrp_sabado": {
+    "valor" : 6,
+    "unidad" : "h/día",
+    "norma" : "CAMMESA, Programación Estacional nov 2026, Horas de remuneración de potencia (Res. 219/2000), y semana típica de 90 HRP de la Res. SE 400/2025, punto 6.5",
+    "vigencia_desde" : "2025-11-01"
+},
+
+"hrp_domingo": {
+    "valor" : 4,
+    "unidad" : "h/día",
+    "norma" : "CAMMESA, Programación Estacional nov 2026, Horas de remuneración de potencia (Res. 219/2000), y semana típica de 90 HRP de la Res. SE 400/2025, punto 6.5",
     "vigencia_desde" : "2025-11-01"
 }
 }
