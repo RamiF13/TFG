@@ -1,6 +1,6 @@
 
 [server]
-adress = "localhost"
+address = "localhost"
 
 [browser]
 gatherUsageStats = false
