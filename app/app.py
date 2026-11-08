@@ -46,7 +46,7 @@ else:
     elif st.session_state["rol"] == "RESPONSABLE":
         paginas = {"Responsable de la declaración": [
             st.Page("paginas/evaluacion_retrospectiva.py", title="4. Evaluación retrospectiva"),
-            st.Page("paginas/consulta_declaracion.py", title="5. Consulta de la declaración", default=True),
+            st.Page("paginas/consulta_declaracion.py", title="5. Consulta de la declaración"),
         ]}
     else:
         st.error("El rol del usuario no es válido.")
