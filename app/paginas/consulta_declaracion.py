@@ -41,7 +41,7 @@ with col2.container(border=True):
     st.metric("Pronóstico (central)", formato_mw(cuantiles_maximo[1]))
     st.caption("Máximo de la estación")
 with col3.container(border=True):
-    st.metric("Banda de incertidumbre", f"{formato_mw(cuantiles_maximo[0])} a {formato_mw(cuantiles_maximo[2])}")
+    st.metric("Banda de incertidumbre (MW)", f"{formato_mw(cuantiles_maximo[0]).replace(' MW', '')} a {formato_mw(cuantiles_maximo[2]).replace(' MW', '')}")
     st.caption("Inferior a superior")
 with col4.container(border=True):
     st.metric("Cargo proyectado (U\\$S)", f"{formato_millones(cargo['CARGO_Q10_USD'])}M a {formato_millones(cargo['CARGO_Q90_USD'])}M")
