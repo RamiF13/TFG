@@ -44,7 +44,7 @@ with col3.container(border=True):
     st.metric("Banda de incertidumbre", f"{formato_mw(cuantiles_maximo[0])} a {formato_mw(cuantiles_maximo[2])}")
     st.caption("Inferior a superior")
 with col4.container(border=True):
-    st.metric("Cargo proyectado", f"U\\$S {formato_millones(cargo['CARGO_Q10_USD'])}M a {formato_millones(cargo['CARGO_Q90_USD'])}M")
+    st.metric("Cargo proyectado (U\\$S)", f"{formato_millones(cargo['CARGO_Q10_USD'])}M a {formato_millones(cargo['CARGO_Q90_USD'])}M")
     st.caption(f"Central: {formato_usd(cargo['CARGO_Q50_USD'])}. Al declarar el piso")
 
 
